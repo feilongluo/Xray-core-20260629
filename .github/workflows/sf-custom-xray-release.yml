@@ -10,11 +10,6 @@ on:
         description: "Release tag to create or update, for example v26.6.27-sf.2"
         required: true
         type: string
-      prerelease:
-        description: "Mark the release as prerelease"
-        required: true
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -172,7 +167,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          PRERELEASE: ${{ github.event.inputs.prerelease || 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -189,11 +183,8 @@ jobs:
 
           if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
             gh release upload "${RELEASE_TAG}" dist/Xray-linux-64.zip dist/Xray-linux-64.zip.sha256 dist/Xray-linux-arm64-v8a.zip dist/Xray-linux-arm64-v8a.zip.sha256 dist/Xray-macos-arm64-v8a.zip dist/Xray-macos-arm64-v8a.zip.sha256 --clobber
+            gh release edit "${RELEASE_TAG}" --prerelease=false
           else
-            FLAGS=()
-            if [[ "${PRERELEASE}" == "true" ]]; then
-              FLAGS+=(--prerelease)
-            fi
             gh release create "${RELEASE_TAG}" \
               dist/Xray-linux-64.zip \
               dist/Xray-linux-64.zip.sha256 \
@@ -203,6 +194,5 @@ jobs:
               dist/Xray-macos-arm64-v8a.zip.sha256 \
               --target "${GITHUB_SHA}" \
               --title "${RELEASE_TAG}" \
-              --notes-file "${NOTES}" \
-              "${FLAGS[@]}"
+              --notes-file "${NOTES}"
           fi
