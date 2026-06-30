@@ -13,6 +13,8 @@ on:
     - cron: "30 22 * * *"
   push:
     # Prevent triggering update request storm
+    branches:
+      - main
     paths:
       - ".github/workflows/scheduled-assets-update.yml"
   pull_request:
