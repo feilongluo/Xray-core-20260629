@@ -2,6 +2,10 @@ name: Tests and Checkings
 
 on:
   push:
+    branches-ignore:
+      - "sf/**"
+    tags-ignore:
+      - "v*-sf.*"
   pull_request:
     types: [opened, synchronize, reopened]
 
