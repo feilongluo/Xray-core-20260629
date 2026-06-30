@@ -196,3 +196,11 @@ jobs:
               --title "${RELEASE_TAG}" \
               --notes-file "${NOTES}"
           fi
+
+          gh release list --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.tagName | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-sf\\.[0-9]+$")) | select(.isPrerelease == true) | .tagName' \
+            | while read -r sf_release_tag; do
+                if [[ -n "${sf_release_tag}" ]]; then
+                  gh release edit "${sf_release_tag}" --prerelease=false
+                fi
+              done
