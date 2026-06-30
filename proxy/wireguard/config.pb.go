@@ -77,6 +77,52 @@ func (DeviceConfig_DomainStrategy) EnumDescriptor() ([]byte, []int) {
 	return file_proxy_wireguard_config_proto_rawDescGZIP(), []int{1, 0}
 }
 
+type DeviceConfig_Lifecycle int32
+
+const (
+	DeviceConfig_PERSISTENT     DeviceConfig_Lifecycle = 0
+	DeviceConfig_PER_CONNECTION DeviceConfig_Lifecycle = 1
+)
+
+// Enum value maps for DeviceConfig_Lifecycle.
+var (
+	DeviceConfig_Lifecycle_name = map[int32]string{
+		0: "PERSISTENT",
+		1: "PER_CONNECTION",
+	}
+	DeviceConfig_Lifecycle_value = map[string]int32{
+		"PERSISTENT":     0,
+		"PER_CONNECTION": 1,
+	}
+)
+
+func (x DeviceConfig_Lifecycle) Enum() *DeviceConfig_Lifecycle {
+	p := new(DeviceConfig_Lifecycle)
+	*p = x
+	return p
+}
+
+func (x DeviceConfig_Lifecycle) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeviceConfig_Lifecycle) Descriptor() protoreflect.EnumDescriptor {
+	return file_proxy_wireguard_config_proto_enumTypes[1].Descriptor()
+}
+
+func (DeviceConfig_Lifecycle) Type() protoreflect.EnumType {
+	return &file_proxy_wireguard_config_proto_enumTypes[1]
+}
+
+func (x DeviceConfig_Lifecycle) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DeviceConfig_Lifecycle.Descriptor instead.
+func (DeviceConfig_Lifecycle) EnumDescriptor() ([]byte, []int) {
+	return file_proxy_wireguard_config_proto_rawDescGZIP(), []int{1, 1}
+}
+
 type PeerConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PublicKey     string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
@@ -154,18 +200,21 @@ func (x *PeerConfig) GetAllowedIps() []string {
 }
 
 type DeviceConfig struct {
-	state          protoimpl.MessageState      `protogen:"open.v1"`
-	SecretKey      string                      `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
-	Endpoint       []string                    `protobuf:"bytes,2,rep,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Peers          []*PeerConfig               `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
-	Users          []*protocol.User            `protobuf:"bytes,5,rep,name=users,proto3" json:"users,omitempty"`
-	Mtu            int32                       `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
-	Reserved       []byte                      `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
-	DomainStrategy DeviceConfig_DomainStrategy `protobuf:"varint,7,opt,name=domain_strategy,json=domainStrategy,proto3,enum=xray.proxy.wireguard.DeviceConfig_DomainStrategy" json:"domain_strategy,omitempty"`
-	IsClient       bool                        `protobuf:"varint,8,opt,name=is_client,json=isClient,proto3" json:"is_client,omitempty"`
-	NoKernelTun    bool                        `protobuf:"varint,9,opt,name=no_kernel_tun,json=noKernelTun,proto3" json:"no_kernel_tun,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                  protoimpl.MessageState      `protogen:"open.v1"`
+	SecretKey              string                      `protobuf:"bytes,1,opt,name=secret_key,json=secretKey,proto3" json:"secret_key,omitempty"`
+	Endpoint               []string                    `protobuf:"bytes,2,rep,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Peers                  []*PeerConfig               `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	Users                  []*protocol.User            `protobuf:"bytes,5,rep,name=users,proto3" json:"users,omitempty"`
+	Mtu                    int32                       `protobuf:"varint,4,opt,name=mtu,proto3" json:"mtu,omitempty"`
+	Reserved               []byte                      `protobuf:"bytes,6,opt,name=reserved,proto3" json:"reserved,omitempty"`
+	DomainStrategy         DeviceConfig_DomainStrategy `protobuf:"varint,7,opt,name=domain_strategy,json=domainStrategy,proto3,enum=xray.proxy.wireguard.DeviceConfig_DomainStrategy" json:"domain_strategy,omitempty"`
+	IsClient               bool                        `protobuf:"varint,8,opt,name=is_client,json=isClient,proto3" json:"is_client,omitempty"`
+	NoKernelTun            bool                        `protobuf:"varint,9,opt,name=no_kernel_tun,json=noKernelTun,proto3" json:"no_kernel_tun,omitempty"`
+	Lifecycle              DeviceConfig_Lifecycle      `protobuf:"varint,20,opt,name=lifecycle,proto3,enum=xray.proxy.wireguard.DeviceConfig_Lifecycle" json:"lifecycle,omitempty"`
+	MinReconnectIntervalMs int32                       `protobuf:"varint,21,opt,name=min_reconnect_interval_ms,json=minReconnectIntervalMs,proto3" json:"min_reconnect_interval_ms,omitempty"`
+	MaxConcurrentSessions  int32                       `protobuf:"varint,22,opt,name=max_concurrent_sessions,json=maxConcurrentSessions,proto3" json:"max_concurrent_sessions,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeviceConfig) Reset() {
@@ -261,6 +310,27 @@ func (x *DeviceConfig) GetNoKernelTun() bool {
 	return false
 }
 
+func (x *DeviceConfig) GetLifecycle() DeviceConfig_Lifecycle {
+	if x != nil {
+		return x.Lifecycle
+	}
+	return DeviceConfig_PERSISTENT
+}
+
+func (x *DeviceConfig) GetMinReconnectIntervalMs() int32 {
+	if x != nil {
+		return x.MinReconnectIntervalMs
+	}
+	return 0
+}
+
+func (x *DeviceConfig) GetMaxConcurrentSessions() int32 {
+	if x != nil {
+		return x.MaxConcurrentSessions
+	}
+	return 0
+}
+
 var File_proxy_wireguard_config_proto protoreflect.FileDescriptor
 
 const file_proxy_wireguard_config_proto_rawDesc = "" +
@@ -275,7 +345,7 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"\n" +
 	"keep_alive\x18\x04 \x01(\tR\tkeepAlive\x12\x1f\n" +
 	"\vallowed_ips\x18\x05 \x03(\tR\n" +
-	"allowedIps\"\xdc\x03\n" +
+	"allowedIps\"\xcc\x05\n" +
 	"\fDeviceConfig\x12\x1d\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tR\tsecretKey\x12\x1a\n" +
@@ -286,7 +356,10 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"\breserved\x18\x06 \x01(\fR\breserved\x12Z\n" +
 	"\x0fdomain_strategy\x18\a \x01(\x0e21.xray.proxy.wireguard.DeviceConfig.DomainStrategyR\x0edomainStrategy\x12\x1b\n" +
 	"\tis_client\x18\b \x01(\bR\bisClient\x12\"\n" +
-	"\rno_kernel_tun\x18\t \x01(\bR\vnoKernelTun\"\\\n" +
+	"\rno_kernel_tun\x18\t \x01(\bR\vnoKernelTun\x12J\n" +
+	"\tlifecycle\x18\x14 \x01(\x0e2,.xray.proxy.wireguard.DeviceConfig.LifecycleR\tlifecycle\x129\n" +
+	"\x19min_reconnect_interval_ms\x18\x15 \x01(\x05R\x16minReconnectIntervalMs\x126\n" +
+	"\x17max_concurrent_sessions\x18\x16 \x01(\x05R\x15maxConcurrentSessions\"\\\n" +
 	"\x0eDomainStrategy\x12\f\n" +
 	"\bFORCE_IP\x10\x00\x12\r\n" +
 	"\tFORCE_IP4\x10\x01\x12\r\n" +
@@ -294,7 +367,11 @@ const file_proxy_wireguard_config_proto_rawDesc = "" +
 	"\n" +
 	"FORCE_IP46\x10\x03\x12\x0e\n" +
 	"\n" +
-	"FORCE_IP64\x10\x04B^\n" +
+	"FORCE_IP64\x10\x04\"/\n" +
+	"\tLifecycle\x12\x0e\n" +
+	"\n" +
+	"PERSISTENT\x10\x00\x12\x12\n" +
+	"\x0ePER_CONNECTION\x10\x01B^\n" +
 	"\x18com.xray.proxy.wireguardP\x01Z)github.com/xtls/xray-core/proxy/wireguard\xaa\x02\x14Xray.Proxy.WireGuardb\x06proto3"
 
 var (
@@ -309,23 +386,25 @@ func file_proxy_wireguard_config_proto_rawDescGZIP() []byte {
 	return file_proxy_wireguard_config_proto_rawDescData
 }
 
-var file_proxy_wireguard_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_proxy_wireguard_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_proxy_wireguard_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_proxy_wireguard_config_proto_goTypes = []any{
 	(DeviceConfig_DomainStrategy)(0), // 0: xray.proxy.wireguard.DeviceConfig.DomainStrategy
-	(*PeerConfig)(nil),               // 1: xray.proxy.wireguard.PeerConfig
-	(*DeviceConfig)(nil),             // 2: xray.proxy.wireguard.DeviceConfig
-	(*protocol.User)(nil),            // 3: xray.common.protocol.User
+	(DeviceConfig_Lifecycle)(0),      // 1: xray.proxy.wireguard.DeviceConfig.Lifecycle
+	(*PeerConfig)(nil),               // 2: xray.proxy.wireguard.PeerConfig
+	(*DeviceConfig)(nil),             // 3: xray.proxy.wireguard.DeviceConfig
+	(*protocol.User)(nil),            // 4: xray.common.protocol.User
 }
 var file_proxy_wireguard_config_proto_depIdxs = []int32{
-	1, // 0: xray.proxy.wireguard.DeviceConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
-	3, // 1: xray.proxy.wireguard.DeviceConfig.users:type_name -> xray.common.protocol.User
+	2, // 0: xray.proxy.wireguard.DeviceConfig.peers:type_name -> xray.proxy.wireguard.PeerConfig
+	4, // 1: xray.proxy.wireguard.DeviceConfig.users:type_name -> xray.common.protocol.User
 	0, // 2: xray.proxy.wireguard.DeviceConfig.domain_strategy:type_name -> xray.proxy.wireguard.DeviceConfig.DomainStrategy
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 3: xray.proxy.wireguard.DeviceConfig.lifecycle:type_name -> xray.proxy.wireguard.DeviceConfig.Lifecycle
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_proxy_wireguard_config_proto_init() }
@@ -338,7 +417,7 @@ func file_proxy_wireguard_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxy_wireguard_config_proto_rawDesc), len(file_proxy_wireguard_config_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,

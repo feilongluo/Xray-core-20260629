@@ -24,6 +24,12 @@ message DeviceConfig {
     FORCE_IP46 = 3;
     FORCE_IP64 = 4;
   }
+
+  enum Lifecycle {
+    PERSISTENT = 0;
+    PER_CONNECTION = 1;
+  }
+
   string secret_key = 1;
   repeated string endpoint = 2;
   repeated PeerConfig peers = 3;
@@ -34,4 +40,8 @@ message DeviceConfig {
   DomainStrategy domain_strategy = 7;
   bool is_client = 8;
   bool no_kernel_tun = 9;
+
+  Lifecycle lifecycle = 20;
+  int32 min_reconnect_interval_ms = 21;
+  int32 max_concurrent_sessions = 22;
 }

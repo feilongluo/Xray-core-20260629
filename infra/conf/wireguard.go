@@ -66,6 +66,10 @@ type WireGuardConfig struct {
 	MTU            int32                  `json:"mtu"`
 	Reserved       []byte                 `json:"reserved"`
 	DomainStrategy string                 `json:"domainStrategy"`
+
+	Lifecycle              string `json:"lifecycle"`
+	MinReconnectIntervalMs int32  `json:"minReconnectIntervalMs"`
+	MaxConcurrentSessions  int32  `json:"maxConcurrentSessions"`
 }
 
 func (c *WireGuardConfig) Build() (proto.Message, error) {
@@ -139,8 +143,39 @@ func (c *WireGuardConfig) Build() (proto.Message, error) {
 		return nil, errors.New("unsupported domain strategy: ", c.DomainStrategy)
 	}
 
+	switch strings.ToLower(c.Lifecycle) {
+	case "", "persistent":
+		config.Lifecycle = wireguard.DeviceConfig_PERSISTENT
+	case "perconnection", "per_connection":
+		config.Lifecycle = wireguard.DeviceConfig_PER_CONNECTION
+	case "idletimeout", "idle_timeout":
+		return nil, errors.New("WireGuard lifecycle idleTimeout is reserved for future use")
+	default:
+		return nil, errors.New("unsupported WireGuard lifecycle: ", c.Lifecycle)
+	}
+
+	if c.MinReconnectIntervalMs < 0 {
+		return nil, errors.New("minReconnectIntervalMs must be greater than or equal to 0")
+	}
+	if c.MaxConcurrentSessions < 0 {
+		return nil, errors.New("maxConcurrentSessions must be greater than or equal to 0")
+	}
+	config.MinReconnectIntervalMs = c.MinReconnectIntervalMs
+	config.MaxConcurrentSessions = c.MaxConcurrentSessions
+
 	config.IsClient = c.IsClient
 	config.NoKernelTun = c.NoKernelTun
+	if config.Lifecycle == wireguard.DeviceConfig_PER_CONNECTION {
+		if !c.IsClient {
+			return nil, errors.New("WireGuard lifecycle perConnection is only supported for client outbound")
+		}
+		if !c.NoKernelTun {
+			return nil, errors.New("WireGuard lifecycle perConnection requires noKernelTun=true")
+		}
+		if config.MaxConcurrentSessions <= 0 {
+			config.MaxConcurrentSessions = 1
+		}
+	}
 
 	return config, nil
 }

@@ -1,0 +1,138 @@
+name: Build and Release SF Custom Xray
+
+on:
+  push:
+    tags:
+      - "v*-sf.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create or update, for example v26.6.27-sf.1"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark the release as prerelease"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sf-custom-xray-release-${{ github.ref_name }}-${{ github.event.inputs.tag || '' }}
+  cancel-in-progress: false
+
+jobs:
+  build-linux-amd64:
+    name: Build Linux amd64 custom Xray
+    runs-on: ubuntu-latest
+    env:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: 0
+      ASSET_NAME: Xray-linux-64.zip
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Resolve release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RELEASE_TAG="${{ github.event.inputs.tag }}"
+          else
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-sf\.[0-9]+$ ]]; then
+            echo "Release tag must match vX.Y.Z-sf.N, got '${RELEASE_TAG}'." >&2
+            exit 1
+          fi
+
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> "${GITHUB_ENV}"
+
+      - name: Run focused tests
+        run: |
+          go test -count=1 ./proxy/wireguard ./app/proxyman/outbound
+          go test -count=1 ./infra/conf -run 'WireGuardLifecycle|ParseWireGuardKey'
+
+      - name: Build Xray
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build_assets dist
+          COMMIT_ID="$(git rev-parse --short=8 HEAD)-sf"
+          go build \
+            -o build_assets/xray \
+            -trimpath \
+            -buildvcs=false \
+            -gcflags="all=-l=4" \
+            -ldflags="-X github.com/xtls/xray-core/core.build=${COMMIT_ID} -s -w -buildid=" \
+            -v ./main
+          chmod 0755 build_assets/xray
+          ./build_assets/xray version
+
+      - name: Package release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp README.md LICENSE build_assets/
+          (
+            cd build_assets
+            touch -mt "$(date -u +%Y01010000)" *
+            zip -9vr "../dist/${ASSET_NAME}" .
+          )
+          sha256sum "dist/${ASSET_NAME}" | tee "dist/${ASSET_NAME}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: sf-custom-xray-linux-amd64
+          path: |
+            dist/Xray-linux-64.zip
+            dist/Xray-linux-64.zip.sha256
+          if-no-files-found: error
+
+      - name: Create or update GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ github.event.inputs.prerelease || 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          NOTES="$(mktemp)"
+          {
+            echo "SF custom Xray build for proxy-ui."
+            echo
+            echo "- Base Xray version: v26.6.27"
+            echo "- Build commit: ${GITHUB_SHA}"
+            echo "- Primary asset: ${ASSET_NAME}"
+            echo "- SHA256 file: ${ASSET_NAME}.sha256"
+          } > "${NOTES}"
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "dist/${ASSET_NAME}" "dist/${ASSET_NAME}.sha256" --clobber
+          else
+            FLAGS=()
+            if [[ "${PRERELEASE}" == "true" ]]; then
+              FLAGS+=(--prerelease)
+            fi
+            gh release create "${RELEASE_TAG}" \
+              "dist/${ASSET_NAME}" \
+              "dist/${ASSET_NAME}.sha256" \
+              --target "${GITHUB_SHA}" \
+              --title "${RELEASE_TAG}" \
+              --notes-file "${NOTES}" \
+              "${FLAGS[@]}"
+          fi

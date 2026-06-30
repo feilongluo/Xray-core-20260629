@@ -132,14 +132,32 @@ func (m *Manager) RemoveHandler(ctx context.Context, tag string) error {
 	if tag == "" {
 		return common.ErrNoClue
 	}
+
 	m.access.Lock()
-	defer m.access.Unlock()
 
-	m.tagsCache = &sync.Map{}
+	handler, found := m.taggedHandler[tag]
+	if found {
+		delete(m.taggedHandler, tag)
+	}
 
-	delete(m.taggedHandler, tag)
 	if m.defaultHandler != nil && m.defaultHandler.Tag() == tag {
+		if !found {
+			handler = m.defaultHandler
+			found = true
+		}
 		m.defaultHandler = nil
+	}
+	if found {
+		m.tagsCache = &sync.Map{}
+	}
+	m.access.Unlock()
+
+	if !found {
+		return nil
+	}
+
+	if err := handler.Close(); err != nil {
+		errors.LogWarningInner(ctx, err, "failed to close outbound handler ", tag)
 	}
 
 	return nil
@@ -163,12 +181,13 @@ func (m *Manager) ListHandlers(ctx context.Context) []outbound.Handler {
 // Select implements outbound.HandlerSelector.
 func (m *Manager) Select(selectors []string) []string {
 	key := strings.Join(selectors, ",")
-	if cache, ok := m.tagsCache.Load(key); ok {
-		return cache.([]string)
-	}
 
 	m.access.RLock()
 	defer m.access.RUnlock()
+
+	if cache, ok := m.tagsCache.Load(key); ok {
+		return cache.([]string)
+	}
 
 	tags := make([]string, 0, len(selectors))
 
