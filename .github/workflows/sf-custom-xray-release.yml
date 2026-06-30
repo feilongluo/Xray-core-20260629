@@ -44,22 +44,28 @@ jobs:
           go test -count=1 ./proxy/wireguard ./app/proxyman/outbound
           go test -count=1 ./infra/conf -run 'WireGuardLifecycle|ParseWireGuardKey'
 
-  build-linux:
-    name: Build Linux ${{ matrix.goarch }} custom Xray
+  build-target:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }} custom Xray
     runs-on: ubuntu-latest
     needs: focused-tests
     strategy:
       fail-fast: false
       matrix:
         include:
-          - goarch: amd64
+          - goos: linux
+            goarch: amd64
             asset_name: Xray-linux-64.zip
             artifact_name: sf-custom-xray-linux-amd64
-          - goarch: arm64
+          - goos: linux
+            goarch: arm64
             asset_name: Xray-linux-arm64-v8a.zip
             artifact_name: sf-custom-xray-linux-arm64
+          - goos: darwin
+            goarch: arm64
+            asset_name: Xray-macos-arm64-v8a.zip
+            artifact_name: sf-custom-xray-darwin-arm64
     env:
-      GOOS: linux
+      GOOS: ${{ matrix.goos }}
       GOARCH: ${{ matrix.goarch }}
       CGO_ENABLED: 0
       ASSET_NAME: ${{ matrix.asset_name }}
@@ -106,7 +112,7 @@ jobs:
             -ldflags="-X github.com/xtls/xray-core/core.build=${COMMIT_ID} -s -w -buildid=" \
             -v ./main
           chmod 0755 build_assets/xray
-          if [[ "${GOARCH}" == "amd64" ]]; then
+          if [[ "${GOOS}" == "linux" && "${GOARCH}" == "amd64" ]]; then
             ./build_assets/xray version
           fi
 
@@ -134,7 +140,7 @@ jobs:
   publish-release:
     name: Publish custom Xray release
     runs-on: ubuntu-latest
-    needs: build-linux
+    needs: build-target
     steps:
       - name: Resolve release tag
         shell: bash
@@ -177,12 +183,12 @@ jobs:
             echo
             echo "- Base Xray version: v26.6.27"
             echo "- Build commit: ${GITHUB_SHA}"
-            echo "- Assets: Xray-linux-64.zip, Xray-linux-arm64-v8a.zip"
+            echo "- Assets: Xray-linux-64.zip, Xray-linux-arm64-v8a.zip, Xray-macos-arm64-v8a.zip"
             echo "- SHA256 files are uploaded next to each asset."
           } > "${NOTES}"
 
           if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
-            gh release upload "${RELEASE_TAG}" dist/Xray-linux-64.zip dist/Xray-linux-64.zip.sha256 dist/Xray-linux-arm64-v8a.zip dist/Xray-linux-arm64-v8a.zip.sha256 --clobber
+            gh release upload "${RELEASE_TAG}" dist/Xray-linux-64.zip dist/Xray-linux-64.zip.sha256 dist/Xray-linux-arm64-v8a.zip dist/Xray-linux-arm64-v8a.zip.sha256 dist/Xray-macos-arm64-v8a.zip dist/Xray-macos-arm64-v8a.zip.sha256 --clobber
           else
             FLAGS=()
             if [[ "${PRERELEASE}" == "true" ]]; then
@@ -193,6 +199,8 @@ jobs:
               dist/Xray-linux-64.zip.sha256 \
               dist/Xray-linux-arm64-v8a.zip \
               dist/Xray-linux-arm64-v8a.zip.sha256 \
+              dist/Xray-macos-arm64-v8a.zip \
+              dist/Xray-macos-arm64-v8a.zip.sha256 \
               --target "${GITHUB_SHA}" \
               --title "${RELEASE_TAG}" \
               --notes-file "${NOTES}" \
